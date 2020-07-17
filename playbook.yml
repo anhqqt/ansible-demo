@@ -1,0 +1,11 @@
+#playbook.yml
+---
+    - name: Install necessary packages for webserver
+      hosts: webserver
+      roles:
+        - webserver
+    
+    - name: Install necessary packages for jenkins
+      hosts: jenkins
+      roles:
+        - jenkins
