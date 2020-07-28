@@ -22,7 +22,16 @@
     command: which docker
     register: docker_dir
 
-  # - name: 5. Run Jenkins container
+  - name: 5.Get info of jenkins container
+    become: yes
+    shell: docker ps -a -f name=jenkins --format {% raw %}"table {{.Status}}"{% endraw %} | awk 'FNR == 2 {print}' | awk '{print $1}'
+    register: jenkins_status
+
+  - name: Echo container status
+    debug:
+      msg: "{{ jenkins_status.stdout }}"
+
+  # - name: 6. Run Jenkins container
   #   docker_container:
   #     name: jenkins
   #     image: jenkins/jenkins:latest
@@ -34,15 +43,33 @@
   #       - "{{docker_dir.stdout}}:/usr/bin/docker"
   #       - /var/run/docker.sock:/var/run/docker.sock
 
-  - name: 5. Run Jenkins container with docker:sock mounted
+  - name: 6. Run Jenkins container with docker:sock mounted
     become: yes
-    command: 'docker run -dit --name jenkins -p 8080:8080 -p 50000:50000 --mount type=volume,source=jenkins_home,target=/var/jenkins_home -v {{ docker_dir.stdout }}:/usr/bin/docker -v /var/run/docker.sock:/var/run/docker.sock jenkins/jenkins:latest'
-  
-  - name: 6. Jump into jenkins container as root and assign 777 role to docker.sock
-    become: yes
-    command: docker exec -u 0 -it jenkins chmod 777 /var/run/docker.sock
+    command: "{{ item }}"
+    with_items:
+      - 'docker run -dit --name jenkins -p 8080:8080 -p 50000:50000 --mount type=volume,source=jenkins_home,target=/var/jenkins_home -v {{ docker_dir.stdout }}:/usr/bin/docker -v /var/run/docker.sock:/var/run/docker.sock jenkins/jenkins:latest'
+      - docker exec -u 0 -it jenkins chmod 777 /var/run/docker.sock
+      - sleep 30
+    when: jenkins_status.stdout == ''
 
-  # - name: 2. Start web server
-  #   service:
-  #     name: httpd
-  #     state: started
+  # - name: 6-1. Run Jenkins container with docker:sock mounted
+  #   become: yes
+  #   command: 'docker run -dit --name jenkins -p 8080:8080 -p 50000:50000 --mount type=volume,source=jenkins_home,target=/var/jenkins_home -v {{ docker_dir.stdout }}:/usr/bin/docker -v /var/run/docker.sock:/var/run/docker.sock jenkins/jenkins:latest'
+  #   when: jenkins_status.stdout == ''
+  
+  # - name: 6-2. Jump into jenkins container as root and assign 777 role to docker.sock
+  #   become: yes
+  #   command: docker exec -u 0 jenkins chmod 777 /var/run/docker.sock
+
+  # - name: 6-3. Pause for 30 secs to make sure container is up
+  #   pause:
+  #     seconds: "30"
+
+  - name: 7. Get the Jenkins secret key
+    become: yes
+    command: docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
+    register: jenkins_secret
+
+  - name: 8. Echo the jenkins secret
+    debug:
+      msg: "{{ jenkins_secret.stdout }}"

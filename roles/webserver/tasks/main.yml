@@ -16,8 +16,3 @@
       become: yes
       shell: /home/matdecha/docker.sh >> /home/matdecha/docker-result.txt
       when: docker_version.stdout == ''
-    
-    # - name: 2. Start web server
-    #   service:
-    #     name: httpd
-    #     state: started
