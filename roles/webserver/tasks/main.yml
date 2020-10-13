@@ -17,6 +17,7 @@
       shell: /home/matdecha/docker.sh >> /home/matdecha/docker-result.txt
       when: docker_version.stdout == ''
 
+# Because Jenkins will deploy web into this VM with user "matdecha"
     - name: 4. Add permission to run docker / docker-compose with another user
       become: yes
       command: "{{ item }}"
